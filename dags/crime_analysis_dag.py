@@ -4,7 +4,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 import os
 from etl_scripts.transform import transform_data
-# from etl_scripts.load import load_data, load_fact_data
+from etl_scripts.load import load_data
 from etl_scripts.extract import extract_data
 
 airflow_home = os.environ.get("AIRFLOW_HOME", "/opt/airflow")
@@ -38,15 +38,10 @@ with DAG(
         },
     )
 
-    # load = PythonOperator(
-    #     task_id="load",
-    #     python_callable=load_data,
-    #     op_kwargs={
-    #         "table_file": pq_target_dir + "/animal_dimension.parquet",
-    #         "table_name": "Animal Dimension",
-    #         "key": "Animal Key",
-    #     },
-    # )
+    load = PythonOperator(
+        task_id="load",
+        python_callable=load_data,
+    )
 
     (
         extract
