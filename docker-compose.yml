@@ -75,13 +75,14 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     AIRFLOW_CONN_SPARK_DEFAULT: 'spark://spark:7077'
     AIRFLOW__WEBSERVER__SECRET_KEY: 'secret'
+    DATABASE_CONNECTION_STRING: postgresql+psycopg2://ashwathi:sunbeam@db:5432/lacrimedataanalysis
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ./spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
-    - ./spark/data:/usr/local/spark/resources/data #Resources folder (Must be the same path in airflow and Spark Cluster)
+    - ${AIRFLOW_PROJ_DIR:-.}/db/:/opt/airflow/db/
+    - ./spark/creds/lacrimedataanalysis-efd36e75da36.json:/creds/lacrimedataanalysis.json
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -92,10 +93,7 @@ x-airflow-common:
 
 x-spark-common:
   &spark-common
-  image: bitnami/spark:3.5.0
-  volumes:
-    - ./spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
-    - ./spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
+  image: bitnami/spark:3.1.2
   environment:
     &spark-common-env
     SPARK_RPC_AUTHENTICATION_ENABLED: no
@@ -336,25 +334,25 @@ services:
       SPARK_WORKER_CORES: 1
       <<: *spark-common-env
 
-  # spark-worker-2:
-  #   <<: *spark-common
-  #   user: root
-  #   environment:
-  #     SPARK_MODE: worker
-  #     SPARK_MASTER_URL: spark://spark:7077
-  #     SPARK_WORKER_MEMORY: 1G
-  #     SPARK_WORKER_CORES: 1
-  #     <<: *spark-common-env
+  spark-worker-2:
+    <<: *spark-common
+    user: root
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark:7077
+      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_CORES: 1
+      <<: *spark-common-env
 
-  # spark-worker-3:
-  #   <<: *spark-common
-  #   user: root
-  #   environment:
-  #     SPARK_MODE: worker
-  #     SPARK_MASTER_URL: spark://spark:7077
-  #     SPARK_WORKER_MEMORY: 1G
-  #     SPARK_WORKER_CORES: 1
-  #     <<: *spark-common-env
+  spark-worker-3:
+    <<: *spark-common
+    user: root
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark:7077
+      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_CORES: 1
+      <<: *spark-common-env
   
   jupyter-notebook:
     build:
@@ -362,9 +360,30 @@ services:
       dockerfile: ./dockerfile.jupyter
     volumes:
       - ./notebooks:/home/jovyan/workspace
+      - ./spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
+      - ./spark/data:/usr/local/spark/resources/data #Resources folder (Must be the same path in airflow and Spark Cluster)
     ports:
       - 8888:8888
     command: "start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''"
 
+  db:
+    image: "postgres:16"
+    environment:
+      - POSTGRES_USER=ashwathi
+      - POSTGRES_PASSWORD=sunbeam
+      - POSTGRES_DB=lacrimedataanalysis
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
 volumes:
   postgres-db-volume:
+  db_data:

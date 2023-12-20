@@ -1,6 +1,9 @@
 FROM apache/airflow:2.7.3
+# FROM python:3.6
 
 USER root
+
+# RUN pip install "apache-airflow[celery]==2.2.5" #--constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.0/constraints-3.8.txt"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -8,6 +11,11 @@ RUN apt-get update \
   && apt-get autoremove -yqq --purge \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+# RUN apt-get update \
+#   && apt-get install -y software-properties-common \
+#   && add-apt-repository -y ppa:deadsnakes/ppa \
+#   && apt-get install python3.6
 
 ARG SPARK_VERSION="3.1.2"
 

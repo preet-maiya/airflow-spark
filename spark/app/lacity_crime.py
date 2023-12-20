@@ -24,14 +24,19 @@ import numpy as np
 from datetime import datetime
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-import matplotlib.pyplot as plt
-
+from google.oauth2 import service_account
+import pandas_gbq
+import os
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+from functools import reduce
+from pyspark.sql import DataFrame
 
 # In[3]:
 
 
 # Initialize Spark session
-spark = SparkSession.builder.appName("CrimeDataAnalysis").master("local[2]").getOrCreate()
+spark = SparkSession.builder.appName("CrimeDataAnalysis").master("spark://spark:7077").getOrCreate()
 
 # Download JSON data
 url = 'https://data.lacity.org/resource/2nrs-mtv8.json?$select=count(*)'
@@ -95,18 +100,22 @@ def load_data(start_date, end_date, batch_size=50000, debug=True):
         batch_data = get_data(start_date, end_date, batch_size, batch_num)
         all_data.append(batch_data)
 
-    return all_data[0].union(*all_data[1:]).dropDuplicates()
+    return reduce(DataFrame.unionAll, all_data).dropDuplicates()
 
 
 # In[5]:
 
 
-start_date = '2020-01-01'
-end_date = datetime.today().strftime('%Y-%m-%d')
+EXECUTION_DATE = os.getenv("EXECUTION_DATE")
+
+start_date = (datetime.strptime(EXECUTION_DATE[:10], "%Y-%m-%d") - relativedelta(months=1)).strftime("%Y-%m-%d")
+end_date = EXECUTION_DATE[:10]
+
+print(f"Start Date: {start_date}, end date: {end_date}")
 
 # crime_data = load_data(start_date, end_date, debug=False)
 # crime_data.to_csv('la_crime_data.csv', index=False)
-crime_data = load_data(start_date, end_date)
+crime_data = load_data(start_date, end_date, debug=False)
 
 # Display the shape of the DataFrame
 num_rows = crime_data.count()
@@ -544,6 +553,14 @@ print("Created 'Time Slot' column")
 # Save DataFrame to CSV
 # data.write.mode("overwrite").csv(r"processed-los-angeles-data.csv", header=True)
 # data.toPandas().to_csv('mycsv.csv')
+
+data_df = data.toPandas()
+credentials = service_account.Credentials.from_service_account_file("/creds/lacrimedataanalysis.json")
+pandas_gbq.context.credentials = credentials
+pandas_gbq.to_gbq(data_df, destination_table='los_angeles.la_crime_data_testing',
+           project_id='lacrimedataanalysis',
+           if_exists='replace')
+
 
 print("##########################")
 print("           END            ")
