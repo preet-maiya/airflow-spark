@@ -139,7 +139,7 @@ print("Shape of the Crimes data DataFrame is:", (num_rows, num_columns))
 
 
 # Show the first few rows of the DataFrame
-data.show(5)
+#data.show(5)
 
 
 # In[9]:
@@ -173,7 +173,7 @@ null_percentages = [(count(when(col(c).isNull(), c)) / num_rows * 100).alias(c) 
 null_percentage_df = data.agg(*null_percentages)
 
 # Show the null percentages
-null_percentage_df.show()
+# null_percentage_df.show()
 
 
 # In[12]:
@@ -184,7 +184,7 @@ data = data.withColumn("date_rptd", col("date_rptd").cast("timestamp"))
 data = data.withColumn("date_occ", col("date_occ").cast("timestamp"))
 
 # Show the DataFrame after conversion
-data.show(5)
+# data.show(5)
 
 
 # In[13]:
@@ -246,7 +246,7 @@ data = data.na.fill('Data Missing', subset=["vict_sex"])
 unique_values_counts = data.groupBy("vict_descent").count()
 
 # Show the result
-unique_values_counts.show(truncate=False)
+# unique_values_counts.show(truncate=False)
 
 
 # In[17]:
@@ -276,12 +276,16 @@ descent_mapping = {
     'Z': 'Asian Indian'
 }
 
+print("AFTER DESCENT MAPPING")
+
 # Replace values in 'vict_descent' column
 for key, value in descent_mapping.items():
+    print(f"INSIDE LOOP WITH KEY: {key}")
     data = data.withColumn("vict_descent", when((col("vict_descent") == key), value).otherwise(col("vict_descent")))
 
 # Fill null values with 'Data Missing'
 data = data.na.fill("Data Missing", subset=["vict_descent"])
+print("FINISHED NULL VALUE REPLACE WITH 'data missing'")
 
 
 # In[18]:
@@ -289,9 +293,10 @@ data = data.na.fill("Data Missing", subset=["vict_descent"])
 
 # Get unique values and their counts in 'vict_descent' column
 unique_values_counts = data.groupBy("vict_descent").count()
+print("FINISHED getting unique values in 'vict_descent'")
 
 # Show the result
-unique_values_counts.show(truncate=False)
+# unique_values_counts.show(truncate=False)
 
 
 # In[19]:
@@ -299,6 +304,7 @@ unique_values_counts.show(truncate=False)
 
 # Fill null values in 'premis_desc' column with 'Data Missing'
 data = data.na.fill("Data Missing", subset=["premis_desc"])
+print("FILL NULL VALUES IN 'PREMIS_DESC' WITH COLUMN WITH 'DATA MISSING'")
 
 
 # In[20]:
@@ -308,7 +314,7 @@ data = data.na.fill("Data Missing", subset=["premis_desc"])
 unique_values_counts = data.groupBy("status_desc").count()
 
 # Show the result
-unique_values_counts.show(truncate=False)
+#unique_values_counts.show(truncate=False)
 
 
 # In[21]:
@@ -450,7 +456,7 @@ null_percentages = [(count(when(col(c).isNull(), c)) / num_rows * 100).alias(c) 
 null_percentage_df = data.agg(*null_percentages)
 
 # Show the null percentages
-null_percentage_df.show()
+# null_percentage_df.show()
 
 
 # In[34]:
@@ -470,6 +476,7 @@ print("There are {} crimes committed over {} days. On average, there are {} crim
 
 # Calculate the delay
 data = data.withColumn('Delay', datediff(col('Date Reported'), col('Date Occurred')))
+print("Calculated the delay!")
 
 
 # In[36]:
@@ -488,6 +495,8 @@ data = data.withColumn('Delay Category',
     .when((col('Delay') >= bins[4]) & (col('Delay') < bins[5]), labels[4])
     .when((col('Delay') >= bins[5]) & (col('Delay') < bins[6]), labels[5])
     .otherwise(labels[6]))
+
+print("Created the delay category!")
 
 
 # In[37]:
@@ -521,6 +530,7 @@ data = data.withColumn(
     .otherwise(None)
 )
 
+print("Created 'Time Slot' column")
 
 # In[42]:
 
@@ -533,7 +543,7 @@ data = data.withColumn(
 
 # Save DataFrame to CSV
 # data.write.mode("overwrite").csv(r"processed-los-angeles-data.csv", header=True)
-data.toPandas().to_csv('mycsv.csv')
+# data.toPandas().to_csv('mycsv.csv')
 
 print("##########################")
 print("           END            ")

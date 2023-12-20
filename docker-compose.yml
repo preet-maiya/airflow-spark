@@ -74,6 +74,7 @@ x-airflow-common:
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     AIRFLOW_CONN_SPARK_DEFAULT: 'spark://spark:7077'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'secret'
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -331,7 +332,7 @@ services:
     environment:
       SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark:7077
-      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_MEMORY: 8G
       SPARK_WORKER_CORES: 1
       <<: *spark-common-env
 
